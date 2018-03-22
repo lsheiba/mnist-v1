@@ -107,7 +107,7 @@ import load_data
 
 def m1():
     # Import data
-    // mnist = load_data.read_data_sets("train")
+    # mnist = load_data.read_data_sets("train")
 
     # Create the model
     x = tf.placeholder(tf.float32, [None, 784],name="x")
