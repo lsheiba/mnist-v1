@@ -20,6 +20,14 @@ from __future__ import print_function
 
 import gzip
 import numpy
+import os
+
+dataset_dir = os.environ['DATASET_DIR']
+
+TRAIN_IMAGES = 'train-images-idx3-ubyte.gz'
+TRAIN_LABELS = 'train-labels-idx1-ubyte.gz'
+TEST_IMAGES = 't10k-images-idx3-ubyte.gz'
+TEST_LABELS = 't10k-labels-idx1-ubyte.gz'
 
 def _read32(bytestream):
     dt = numpy.dtype(numpy.uint32).newbyteorder('>')
@@ -83,3 +91,44 @@ def extract_labels(f, one_hot=False, num_classes=10):
     if one_hot:
       return dense_to_one_hot(labels, num_classes)
     return labels
+
+def read_data_sets(data_type="train"):
+    '''
+    Parse or download mnist data if train_dir is empty.
+
+    :param: train_dir: The directory storing the mnist data
+
+    :param: data_type: Reading training set or testing set.It can be either "train" or "test"
+
+    :return:
+
+    ```
+    (ndarray, ndarray) representing (features, labels)
+    features is a 4D unit8 numpy array [index, y, x, depth] representing each pixel valued from 0 to 255.
+    labels is 1D unit8 nunpy array representing the label valued from 0 to 9.
+    '''
+
+
+    if data_type == "train":
+        train_image_file = dataset_dir+os.sep+TRAIN_IMAGES
+        with open(train_image_file, 'rb') as f:
+            train_images = extract_images(f)
+
+        train_label_file = dataset_dir+os.sep+TRAIN_LABELS
+        with open(train_label_file, 'rb') as f:
+            train_labels = extract_labels(f)
+        return train_images, train_labels
+
+    else:
+        test_image_file = dataset_dir+os.sep+TEST_IMAGES
+        with open(test_image_file, 'rb') as f:
+            test_images = extract_images(f)
+
+        test_label_file = dataset_dir+os.sep+TEST_LABELS
+        with open(test_label_file, 'rb') as f:
+            test_labels = extract_labels(f)
+        return test_images, test_labels
+
+if __name__ == "__main__":
+    train, _ = read_data_sets("train")
+    test, _ = read_data_sets("test")
