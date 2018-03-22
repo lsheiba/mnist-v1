@@ -20,11 +20,10 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 import tensorflow as tf
 
-tf.app.flags.DEFINE_integer('training_iteration', 1000,
-                            'Number of training iterations')
+tf.app.flags.DEFINE_integer('training_iteration', 1000, 'Number of training iterations')
 tf.app.flags.DEFINE_integer('model_version', 1, 'Version number of the model')
-tf.app.flags.DEFINE_string('data_dir', '/tmp/mnist/data', 'Data directory')
-tf.app.flags.DEFINE_string('log_dir', 'models/mnist', 'Log directory')
+tf.app.flags.DEFINE_string('data_dir', os.environ['DATA_DIR'], 'Data directory')
+tf.app.flags.DEFINE_string('log_dir', os.environ['TARGET_DIR'], 'Log directory')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -103,41 +102,50 @@ def bias_variable(shape):
   initial = tf.constant(0.1, shape=shape)
   return tf.Variable(initial)
 
+import load_data
+
+
+def m1():
+    # Import data
+    // mnist = load_data.read_data_sets("train")
+
+    # Create the model
+    x = tf.placeholder(tf.float32, [None, 784],name="x")
+
+    # Define loss and optimizer
+    y_ = tf.placeholder(tf.float32, [None, 10],name="y_")
+
+    tensor_info_x = tf.saved_model.utils.build_tensor_info(x)
+    #tensor_info_y = tf.saved_model.utils.build_tensor_info(y_)
+
+    # Build the graph for the deep net
+    y_conv, keep_prob = deepnn(x)
+    tensor_info_keep_prob = tf.saved_model.utils.build_tensor_info(keep_prob)
+
+    cross_entropy = tf.reduce_mean(
+        tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
+  
+    tf.summary.scalar('cross_entropy', cross_entropy)
+    train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+    correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    tf.summary.scalar('accuracy', accuracy)
+    tensor_info_res = tf.saved_model.utils.build_tensor_info(y_conv)
+
+    prediction_signature = (
+        tf.saved_model.signature_def_utils.build_signature_def(
+            inputs={'x': tensor_info_x,'keep_prob': tensor_info_keep_prob},
+            outputs={'y_conv': tensor_info_res},
+            method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
+
 
 def main(_):
-  # Import data
-  mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
+  m1()
 
-  # Create the model
-  x = tf.placeholder(tf.float32, [None, 784],name="x")
-
-  # Define loss and optimizer
-  y_ = tf.placeholder(tf.float32, [None, 10],name="y_")
-
-  tensor_info_x = tf.saved_model.utils.build_tensor_info(x)
-  #tensor_info_y = tf.saved_model.utils.build_tensor_info(y_)
-
-  # Build the graph for the deep net
-  y_conv, keep_prob = deepnn(x)
-  tensor_info_keep_prob = tf.saved_model.utils.build_tensor_info(keep_prob)
-
-  cross_entropy = tf.reduce_mean(
-      tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
-  tf.summary.scalar('cross_entropy', cross_entropy)
-  train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
-  correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
-  accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-  tf.summary.scalar('accuracy', accuracy)
-  tensor_info_res = tf.saved_model.utils.build_tensor_info(y_conv)
-  prediction_signature = (
-    tf.saved_model.signature_def_utils.build_signature_def(
-        inputs={'x': tensor_info_x,'keep_prob': tensor_info_keep_prob},
-        outputs={'y_conv': tensor_info_res},
-        method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
+'''
   with tf.Session() as sess:
     merged = tf.summary.merge_all()
-    train_writer = tf.summary.FileWriter(FLAGS.log_dir,
-                                      sess.graph)
+    train_writer = tf.summary.FileWriter(FLAGS.log_dir, sess.graph)
     sess.run(tf.global_variables_initializer())
     saver = tf.train.Saver()
     for i in range(FLAGS.training_iteration):
@@ -164,7 +172,7 @@ def main(_):
     builder.save()
     print('test accuracy %g' % accuracy.eval(feed_dict={
         x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
-
+'''
 
 if __name__ == '__main__':
     tf.app.run()
