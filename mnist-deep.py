@@ -107,7 +107,8 @@ import load_data
 
 def m1():
     # Import data
-    # mnist = load_data.read_data_sets("train")
+    mnist_train = load_data.read_data_sets("train")
+    mnist_test = load_data.read_data_sets("test")
 
     # Create the model
     x = tf.placeholder(tf.float32, [None, 784],name="x")
@@ -138,18 +139,19 @@ def m1():
             outputs={'y_conv': tensor_info_res},
             method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
 
+    return mnist_train, mnist_test
+
 
 def main(_):
-  m1()
+  mnist_train, mnist_test = m1()
 
-'''
   with tf.Session() as sess:
     merged = tf.summary.merge_all()
     train_writer = tf.summary.FileWriter(FLAGS.log_dir, sess.graph)
     sess.run(tf.global_variables_initializer())
     saver = tf.train.Saver()
     for i in range(FLAGS.training_iteration):
-      batch = mnist.train.next_batch(50)
+      batch = mnist_train.next_batch(50)
       summary,_ = sess.run([merged,train_step],feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
       if i % 100 == 0:
         train_accuracy = sess.run(accuracy, feed_dict={
@@ -171,8 +173,8 @@ def main(_):
     save_path = saver.save(sess,os.path.join(FLAGS.log_dir,"model.ckpt"))
     builder.save()
     print('test accuracy %g' % accuracy.eval(feed_dict={
-        x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
-'''
+        x: mnist_test.images, y_: mnist_test.labels, keep_prob: 1.0}))
+
 
 if __name__ == '__main__':
     tf.app.run()
