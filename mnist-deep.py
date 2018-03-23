@@ -20,10 +20,12 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 import tensorflow as tf
 
-tf.app.flags.DEFINE_integer('training_iteration', 1000, 'Number of training iterations')
+tf.app.flags.DEFINE_integer('training_iteration', 1000,
+                            'Number of training iterations')
 tf.app.flags.DEFINE_integer('model_version', 1, 'Version number of the model')
-tf.app.flags.DEFINE_string('data_dir', os.environ['DATA_DIR'], 'Data directory')
-tf.app.flags.DEFINE_string('log_dir', os.environ['TRAINING_DIR'], 'Log directory')
+tf.app.flags.DEFINE_string('data_dir', '/notebooks/data', 'Data directory')
+tf.app.flags.DEFINE_string('log_dir', '/notebooks/training', 'Log directory')
+tf.app.flags.DEFINE_string('source_url', '/notebooks/dataset/', 'Source url')
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -102,56 +104,45 @@ def bias_variable(shape):
   initial = tf.constant(0.1, shape=shape)
   return tf.Variable(initial)
 
-import load_data
-
-
-def m1():
-    # Import data
-    mnist_train = load_data.read_data_sets("train")
-    mnist_test = load_data.read_data_sets("test")
-
-    # Create the model
-    x = tf.placeholder(tf.float32, [None, 784],name="x")
-
-    # Define loss and optimizer
-    y_ = tf.placeholder(tf.float32, [None, 10],name="y_")
-
-    tensor_info_x = tf.saved_model.utils.build_tensor_info(x)
-    #tensor_info_y = tf.saved_model.utils.build_tensor_info(y_)
-
-    # Build the graph for the deep net
-    y_conv, keep_prob = deepnn(x)
-    tensor_info_keep_prob = tf.saved_model.utils.build_tensor_info(keep_prob)
-
-    cross_entropy = tf.reduce_mean(
-        tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
-  
-    tf.summary.scalar('cross_entropy', cross_entropy)
-    train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
-    correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    tf.summary.scalar('accuracy', accuracy)
-    tensor_info_res = tf.saved_model.utils.build_tensor_info(y_conv)
-
-    prediction_signature = (
-        tf.saved_model.signature_def_utils.build_signature_def(
-            inputs={'x': tensor_info_x,'keep_prob': tensor_info_keep_prob},
-            outputs={'y_conv': tensor_info_res},
-            method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
-
-    return mnist_train, mnist_test
-
 
 def main(_):
-  mnist_train, mnist_test = m1()
+  # Import data
+  mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True, source_url=FLAGS.source_url)
 
+  # Create the model
+  x = tf.placeholder(tf.float32, [None, 784],name="x")
+
+  # Define loss and optimizer
+  y_ = tf.placeholder(tf.float32, [None, 10],name="y_")
+
+  tensor_info_x = tf.saved_model.utils.build_tensor_info(x)
+  #tensor_info_y = tf.saved_model.utils.build_tensor_info(y_)
+
+  # Build the graph for the deep net
+  y_conv, keep_prob = deepnn(x)
+  tensor_info_keep_prob = tf.saved_model.utils.build_tensor_info(keep_prob)
+
+  cross_entropy = tf.reduce_mean(
+      tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
+  tf.summary.scalar('cross_entropy', cross_entropy)
+  train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+  correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
+  accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+  tf.summary.scalar('accuracy', accuracy)
+  tensor_info_res = tf.saved_model.utils.build_tensor_info(y_conv)
+  prediction_signature = (
+    tf.saved_model.signature_def_utils.build_signature_def(
+        inputs={'x': tensor_info_x,'keep_prob': tensor_info_keep_prob},
+        outputs={'y_conv': tensor_info_res},
+        method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
   with tf.Session() as sess:
     merged = tf.summary.merge_all()
-    train_writer = tf.summary.FileWriter(FLAGS.log_dir, sess.graph)
+    train_writer = tf.summary.FileWriter(FLAGS.log_dir,
+                                      sess.graph)
     sess.run(tf.global_variables_initializer())
     saver = tf.train.Saver()
     for i in range(FLAGS.training_iteration):
-      batch = mnist_train.next_batch(50)
+      batch = mnist.train.next_batch(50)
       summary,_ = sess.run([merged,train_step],feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
       if i % 100 == 0:
         train_accuracy = sess.run(accuracy, feed_dict={
@@ -173,7 +164,7 @@ def main(_):
     save_path = saver.save(sess,os.path.join(FLAGS.log_dir,"model.ckpt"))
     builder.save()
     print('test accuracy %g' % accuracy.eval(feed_dict={
-        x: mnist_test.images, y_: mnist_test.labels, keep_prob: 1.0}))
+        x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
 
 
 if __name__ == '__main__':
