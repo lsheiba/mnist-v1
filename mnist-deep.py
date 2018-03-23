@@ -23,7 +23,7 @@ import tensorflow as tf
 tf.app.flags.DEFINE_integer('training_iteration', 1000, 'Number of training iterations')
 tf.app.flags.DEFINE_integer('model_version', 1, 'Version number of the model')
 tf.app.flags.DEFINE_string('data_dir', os.environ['DATA_DIR'], 'Data directory')
-tf.app.flags.DEFINE_string('log_dir', os.environ['TARGET_DIR'], 'Log directory')
+tf.app.flags.DEFINE_string('log_dir', os.environ['TRAINING_DIR'], 'Log directory')
 FLAGS = tf.app.flags.FLAGS
 
 
